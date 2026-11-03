@@ -73,13 +73,12 @@ void Sampler::commitImage2D()
 {
     filament::Engine * const engine = deviceState()->engine;
 
-    if (mTexture) {
-        engine->destroy(mTexture);
-        mTexture = nullptr;
-    }
-
     auto *imageArray = getParamObject<helium::Array2D>("image");
     if (!imageArray) {
+        if (mTexture) {
+            engine->destroy(mTexture);
+            mTexture = nullptr;
+        }
         reportMessage(ANARI_SEVERITY_ERROR,
             "image2D sampler requires 'image' parameter");
         return;
@@ -111,23 +110,42 @@ void Sampler::commitImage2D()
         }
     }
 
+    const auto format = mSrgb
+        ? filament::Texture::InternalFormat::SRGB8_A8
+        : filament::Texture::InternalFormat::RGBA8;
+
+    // A MaterialInstance keeps this Texture* until the material is rebuilt.
+    // Destroying it on a same-size recommit leaves FEngine::prepare with an
+    // invalid binding. Panels recommit image2D on every raster, so upload
+    // into the existing texture when its description still matches.
+    const bool reuse = mTexture
+        && mTexture->getWidth() == width
+        && mTexture->getHeight() == height
+        && mTexture->getLevels() == levels
+        && mTexture->getFormat() == format
+        && mTexture->getTarget() == filament::Texture::Sampler::SAMPLER_2D;
+
+    if (mTexture && !reuse) {
+        engine->destroy(mTexture);
+        mTexture = nullptr;
+    }
+
+    if (!mTexture) {
+        auto texUsage = filament::Texture::Usage::DEFAULT;
+        if (levels > 1)
+            texUsage = texUsage | filament::Texture::Usage::GEN_MIPMAPPABLE;
+        mTexture = filament::Texture::Builder()
+            .width(width)
+            .height(height)
+            .levels(levels)
+            .format(format)
+            .sampler(filament::Texture::Sampler::SAMPLER_2D)
+            .usage(texUsage)
+            .build(*engine);
+    }
+
     auto *ownedData = new uint8_t[numPixels * 4];
     convertToRGBA8(ownedData, imageArray->data(), type, numPixels);
-
-    auto texUsage = filament::Texture::Usage::DEFAULT;
-    if (levels > 1) {
-        texUsage = texUsage | filament::Texture::Usage::GEN_MIPMAPPABLE;
-    }
-    mTexture = filament::Texture::Builder()
-        .width(width)
-        .height(height)
-        .levels(levels)
-        .format(mSrgb
-            ? filament::Texture::InternalFormat::SRGB8_A8
-            : filament::Texture::InternalFormat::RGBA8)
-        .sampler(filament::Texture::Sampler::SAMPLER_2D)
-        .usage(texUsage)
-        .build(*engine);
 
     using namespace filament::backend;
     mTexture->setImage(*engine, 0,
