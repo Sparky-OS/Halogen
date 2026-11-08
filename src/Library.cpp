@@ -31,6 +31,8 @@ const char **Library::getDeviceExtensions(const char *) {
         "HALOGEN_NATIVE_SURFACE",
         "HALOGEN_MATERIAL_UNLIT",
         "HALOGEN_GEOMETRY_SKINNING",
+        "ANARI_KHR_CAMERA_ORTHOGRAPHIC",
+        "ANARI_KHR_CAMERA_PERSPECTIVE",
         nullptr
     };
     return extensions;
