@@ -36,6 +36,10 @@ corrade_add_test(LightTest LightTest.cpp)
 target_link_libraries(LightTest PRIVATE anari)
 add_dependencies(LightTest anari_library_halogen)
 
+corrade_add_test(CameraTest CameraTest.cpp)
+target_link_libraries(CameraTest PRIVATE anari)
+add_dependencies(CameraTest anari_library_halogen)
+
 corrade_add_test(RenderTest RenderTest.cpp)
 target_link_libraries(RenderTest PRIVATE anari)
 add_dependencies(RenderTest anari_library_halogen)
