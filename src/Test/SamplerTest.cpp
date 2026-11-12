@@ -36,6 +36,7 @@ struct SamplerTest : Corrade::TestSuite::Tester {
     explicit SamplerTest();
 
     void image2DSampler();
+    void image2DSamplerNoMipmap();
     void image1DSampler();
     void image3DSampler();
     void transformSampler();
@@ -45,6 +46,7 @@ struct SamplerTest : Corrade::TestSuite::Tester {
 SamplerTest::SamplerTest()
 {
     addTests({&SamplerTest::image2DSampler,
+        &SamplerTest::image2DSamplerNoMipmap,
         &SamplerTest::image1DSampler,
         &SamplerTest::image3DSampler,
         &SamplerTest::transformSampler,
@@ -188,6 +190,39 @@ void SamplerTest::image2DSampler()
     anariRelease(f.device, uvArr);
     anariRelease(f.device, posArr);
     anariRelease(f.device, geom);
+}
+
+void SamplerTest::image2DSamplerNoMipmap()
+{
+    DeviceFixture f;
+    CORRADE_VERIFY(f.device);
+
+    uint8_t texData[8 * 8 * 4];
+    for (int i = 0; i < 8 * 8; ++i) {
+        texData[i * 4 + 0] = uint8_t(i * 4);
+        texData[i * 4 + 1] = 255;
+        texData[i * 4 + 2] = 128;
+        texData[i * 4 + 3] = 255;
+    }
+
+    ANARIArray2D texArray = anariNewArray2D(
+        f.device, texData, nullptr, nullptr, ANARI_UFIXED8_VEC4, 8, 8);
+
+    ANARISampler sampler = anariNewSampler(f.device, "image2D");
+    CORRADE_VERIFY(sampler);
+    const uint8_t mipmap = 0;
+    anariSetParameter(f.device, sampler, "image", ANARI_ARRAY2D, &texArray);
+    anariSetParameter(f.device, sampler, "filter", ANARI_STRING, "linear");
+    anariSetParameter(f.device, sampler, "mipmap", ANARI_BOOL, &mipmap);
+    anariCommitParameters(f.device, sampler);
+
+    ANARIMaterial mat = anariNewMaterial(f.device, "unlit");
+    anariSetParameter(f.device, mat, "color", ANARI_SAMPLER, &sampler);
+    anariCommitParameters(f.device, mat);
+
+    anariRelease(f.device, mat);
+    anariRelease(f.device, sampler);
+    anariRelease(f.device, texArray);
 }
 
 void SamplerTest::image1DSampler()

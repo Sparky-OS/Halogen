@@ -29,7 +29,9 @@ filament::TextureSampler filamentSamplerFrom(const Halogen::Sampler &sampler)
     filament::TextureSampler out(
         sampler.isNearest()
             ? Min::NEAREST
-            : Min::LINEAR_MIPMAP_LINEAR,
+            : sampler.hasMipmaps()
+                ? Min::LINEAR_MIPMAP_LINEAR
+                : Min::LINEAR,
         sampler.isNearest()
             ? Mag::NEAREST
             : Mag::LINEAR);

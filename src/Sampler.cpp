@@ -86,6 +86,10 @@ void Sampler::commitImage2D()
 
     const Corrade::Containers::String filterStr = getParamString("filter", "linear");
     mNearest = (filterStr == "nearest"_s);
+    // Halogen extension: "mipmap" false keeps "linear" filtering on a single
+    // level, so a texture drawn smaller than its size is not blurred by a
+    // lower mip (UI text). "nearest" never has mips.
+    mMipmap = !mNearest && getParam<bool>("mipmap", true);
     mWrapS = wrapFromString(getParamString("wrapMode1", "clampToEdge"));
     mWrapT = wrapFromString(getParamString("wrapMode2", "clampToEdge"));
     mInAttribute = getParamString("inAttribute", "attribute0");
@@ -102,7 +106,7 @@ void Sampler::commitImage2D()
     const size_t numPixels = size_t(width) * height;
 
     uint8_t levels = 1;
-    if (!mNearest) {
+    if (mMipmap) {
         uint32_t m = width > height ? width : height;
         while (m > 1) {
             m >>= 1;

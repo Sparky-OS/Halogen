@@ -126,7 +126,7 @@ this device without code changes.
 ### Sampler
 | Subtype | Status |
 |---------|--------|
-| `image2D` | ✅ `UFIXED8_VEC4` and `FLOAT32_VEC4` |
+| `image2D` | ✅ `UFIXED8_VEC4` and `FLOAT32_VEC4`; `mipmap` (`BOOL`, default true) is a Halogen extension -- false keeps `linear` filtering on one level |
 | `image1D` | ✅ |
 | `image3D` | ✅ |
 | `transform` | ✅ 4×4 matrix applied to UV attribute |

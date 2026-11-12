@@ -28,6 +28,7 @@ struct Sampler : public Object
 
     filament::Texture *texture() const { return mTexture; }
     bool isNearest() const { return mNearest; }
+    bool hasMipmaps() const { return mMipmap; }
     bool isSrgb() const { return mSrgb; }
     int uvIndex() const;
     filament::math::mat3f uvMatrix() const;
@@ -68,6 +69,7 @@ private:
     Corrade::Containers::String mSubtype;
     filament::Texture *mTexture = nullptr;
     bool mNearest = false;
+    bool mMipmap = false;
     bool mSrgb = false;
     Corrade::Containers::String mInAttribute;
     filament::TextureSampler::WrapMode mWrapS =
