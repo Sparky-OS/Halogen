@@ -217,11 +217,13 @@ void Frame::renderFrame()
         // float output (Blender composites the raw values).
         mView->setPostProcessingEnabled(false);
     } else {
-        // SRGB output: full post-processing with ACES tonemapping, FXAA,
-        // 4x MSAA, and subtle bloom for visual quality in screenshots.
+        // SRGB output: full post-processing with ACES tonemapping, 4x MSAA,
+        // and subtle bloom. No FXAA: MSAA already smooths geometry edges, and
+        // FXAA smears textured detail such as text, fattening strokes and
+        // filling the gaps between letters differently as the texels move.
         mView->setPostProcessingEnabled(true);
         mView->setColorGrading(nullptr);
-        mView->setAntiAliasing(filament::View::AntiAliasing::FXAA);
+        mView->setAntiAliasing(filament::View::AntiAliasing::NONE);
         mView->setDithering(filament::View::Dithering::TEMPORAL);
         filament::View::MultiSampleAntiAliasingOptions msaa;
         msaa.enabled = true;
