@@ -85,7 +85,6 @@ void Light::commitParameters()
             .color(toFilament(color))
             .intensityCandela(finalIntensity)
             .falloff(falloff)
-            .global(global)
             .castShadows(true)
             .build(*engine, mEntity);
     } else if (mSubtype == "spot"_s) {
@@ -133,7 +132,6 @@ void Light::commitParameters()
             .intensityCandela(finalIntensity)
             .falloff(falloff)
             .spotLightCone(innerRad, outerRad)
-            .global(global)
             .castShadows(true)
             .build(*engine, mEntity);
     } else {
