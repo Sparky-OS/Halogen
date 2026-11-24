@@ -13,6 +13,8 @@
 #include <Corrade/Containers/StringStl.h>
 #include <Corrade/Containers/StringView.h>
 
+#include <cmath>
+
 using namespace Corrade::Containers::Literals;
 
 ANARI_HALOGEN_TYPEFOR_DEFINITION(Halogen::Camera *);
@@ -55,17 +57,55 @@ void Camera::commitParameters()
     const float near = getParam<float>("near", 0.1f);
     const float far = getParam<float>("far", 1000.0f);
 
+    // imageRegion (KHR_CAMERA_PERSPECTIVE and KHR_CAMERA_ORTHOGRAPHIC): the
+    // part of the image plane, in [0, 1] x [0, 1] with the origin at the
+    // lower left, that the frame shows. Its box can lie partly or wholly
+    // outside the unit square: the frustum then grows on that side, which is
+    // how a camera gets an off-axis frustum (stereo eyes, tiles, lens shift).
+    // Unset, or [0, 0, 1, 1], leaves the projection exactly as it was.
+    float region[4] = {0.0f, 0.0f, 1.0f, 1.0f};
+    bool useRegion = getParam("imageRegion", ANARI_FLOAT32_BOX2, region)
+        && !(region[0] == 0.0f && region[1] == 0.0f && region[2] == 1.0f
+            && region[3] == 1.0f);
+    if (useRegion
+        && !(std::isfinite(region[0]) && std::isfinite(region[1])
+            && std::isfinite(region[2]) && std::isfinite(region[3])
+            && region[0] < region[2] && region[1] < region[3])) {
+        reportMessage(ANARI_SEVERITY_ERROR,
+            "camera imageRegion must be a finite box with lower < upper; "
+            "the whole image is used");
+        useRegion = false;
+    }
+
     if (mSubtype == "orthographic"_s) {
         const float height = getParam<float>("height", 1.0f);
         const float halfH = height * 0.5f;
         const float halfW = halfH * aspect;
-        mCamera->setProjection(
-            filament::Camera::Projection::ORTHO,
-            -halfW, halfW, -halfH, halfH, near, far);
+        if (useRegion) {
+            mCamera->setProjection(filament::Camera::Projection::ORTHO,
+                -halfW + region[0] * 2.0f * halfW,
+                -halfW + region[2] * 2.0f * halfW,
+                -halfH + region[1] * 2.0f * halfH,
+                -halfH + region[3] * 2.0f * halfH, near, far);
+        } else {
+            mCamera->setProjection(
+                filament::Camera::Projection::ORTHO,
+                -halfW, halfW, -halfH, halfH, near, far);
+        }
     } else {
         const float fovy = getParam<float>("fovy", Pi / 3.0f);
         const float fovDegrees = fovy * 180.0f / Pi;
-        mCamera->setProjection(fovDegrees, aspect, near, far);
+        if (useRegion) {
+            const double halfH = near * std::tan(double(fovy) * 0.5);
+            const double halfW = halfH * aspect;
+            mCamera->setProjection(filament::Camera::Projection::PERSPECTIVE,
+                -halfW + region[0] * 2.0 * halfW,
+                -halfW + region[2] * 2.0 * halfW,
+                -halfH + region[1] * 2.0 * halfH,
+                -halfH + region[3] * 2.0 * halfH, near, far);
+        } else {
+            mCamera->setProjection(fovDegrees, aspect, near, far);
+        }
     }
 
     // Neutral exposure by default so Filament's rendered luminance maps
